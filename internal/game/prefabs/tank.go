@@ -71,36 +71,29 @@ func (t *Tank) Move(dt float64) {
 	race.Drive(t.Body, input, dt)
 	dynamics.Integrate(t.Body, dt)
 
-	// синхронизируем спрайты
+	// корпус
 	t.body.Position = t.Body.Position
 	t.body.Rotation = t.Body.Rotation
-	
-	// крепление башни в локальных координатах танка
-	local := t.turretOffset // {-23, 0}
 
-	// поворачиваем на угол корпуса
+	// башня
+	local := t.turretOffset
 	cos, sin := math.Cos(t.Body.Rotation), math.Sin(t.Body.Rotation)
 	world := m.Vector2{
 		X: local.X*cos - local.Y*sin,
 		Y: local.X*sin + local.Y*cos,
 	}
-
-	// позиция башни = центр корпуса + повернутое смещение
-	t.body.Position = t.Body.Position
-	t.body.Rotation = t.Body.Rotation
 	t.turret.Position = t.Body.Position.Add(world)
 }
 
-func (t *Tank) UpdateAiming() {
+func (t *Tank) UpdateAiming(cam *renderer.Camera) {
 	mx, my := ebiten.CursorPosition()
-	dirX := float64(mx) - t.turret.Position.X
-	dirY := float64(my) - t.turret.Position.Y
-	angle := math.Atan2(dirY, dirX)
-
-	t.turret.Rotation = angle
+	mouseWorld := cam.ScreenToWorld(m.Vector2{X: float64(mx), Y: float64(my)})
+	dirX := mouseWorld.X - t.turret.Position.X
+	dirY := mouseWorld.Y - t.turret.Position.Y
+	t.turret.Rotation = math.Atan2(dirY, dirX)
 }
 
-func (tank *Tank) Draw(screen *ebiten.Image) {
-	tank.body.Draw(screen)
-	tank.turret.Draw(screen)
+func (tank *Tank) Draw(screen *ebiten.Image, cam *renderer.Camera) {
+	tank.body.Draw(screen, cam)
+	tank.turret.Draw(screen, cam)
 }

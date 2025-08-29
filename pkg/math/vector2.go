@@ -24,3 +24,7 @@ func (v Vector2) Div(scalar float64) Vector2 {
 	}
 	return Vector2{v.X / scalar, v.Y / scalar}
 }
+
+func (v Vector2) Sub(other Vector2) Vector2 {
+	return Vector2{v.X - other.X, v.Y - other.Y}
+}

@@ -13,16 +13,18 @@ type Sprite struct {
 	Origin   m.Vector2
 }
 
-// internal/graphics/renderer/sprite.go
-func (s *Sprite) Draw(screen *ebiten.Image) {
+func (s *Sprite) Draw(screen *ebiten.Image, cam *Camera) {
 	op := &ebiten.DrawImageOptions{}
 
+	// 1. Origin → 0,0
 	op.GeoM.Translate(-s.Origin.X, -s.Origin.Y)
+	// 2. Поворот вокруг Origin
 	op.GeoM.Rotate(s.Rotation)
-	op.GeoM.Scale(s.Scale.X, s.Scale.Y)
-
-	// Переносим сам Origin в нужное место мира
-	op.GeoM.Translate(s.Position.X, s.Position.Y)
+	// 3. Масштаб спрайта + масштаб камеры
+	op.GeoM.Scale(s.Scale.X*cam.Zoom, s.Scale.Y*cam.Zoom)
+	// 4. Перенос в экранный центр
+	scr := cam.WorldToScreen(s.Position)
+	op.GeoM.Translate(scr.X, scr.Y)
 
 	screen.DrawImage(s.Image, op)
 }
