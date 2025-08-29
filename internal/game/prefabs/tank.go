@@ -18,32 +18,37 @@ type Tank struct {
 	turret *renderer.Sprite
 }
 
-func (tank *Tank) Init() error {
-	body, err := assets.LoadTexture("tanks/default/tank_body.png")
+func NewTank() (*Tank, error) {
+	bodyImg, err := assets.LoadTexture("tanks/default/tank_body.png")
 	if err != nil {
-		return fmt.Errorf("failed to load body: %w", err)
+		return nil, fmt.Errorf("failed to load body: %w", err)
 	}
 
-	turret, err := assets.LoadTexture("tanks/default/tank_turret.png")
+	turretImg, err := assets.LoadTexture("tanks/default/tank_turret.png")
 	if err != nil {
-		return fmt.Errorf("failed to load turret: %w", err)
+		return nil, fmt.Errorf("failed to load turret: %w", err)
 	}
 
-	tank.body = &renderer.Sprite{
-		Image:    body,
-		Position: tank.Position,
+	tank := &Tank{
+		Position: m.Vector2{X: 0, Y: 0},
 		Rotation: 0,
-		Scale:    m.Vector2{X: 1, Y: 1},
-		Origin:   m.Vector2{X: float64(body.Bounds().Dx()) / 2, Y: float64(body.Bounds().Dy()) / 2},
+		Velocity: m.Vector2{X: 0, Y: 0},
+		body: &renderer.Sprite{
+			Image:    bodyImg,
+			Position: m.Vector2{X: 0, Y: 0},
+			Rotation: 0,
+			Scale:    m.Vector2{X: 1, Y: 1},
+			Origin:   m.Vector2{X: float64(bodyImg.Bounds().Dx()) / 2, Y: float64(bodyImg.Bounds().Dy()) / 2},
+		},
+		turret: &renderer.Sprite{
+			Image:    turretImg,
+			Position: m.Vector2{X: 0, Y: 0},
+			Rotation: 0,
+			Scale:    m.Vector2{X: 1, Y: 1},
+			Origin:   m.Vector2{X: float64(turretImg.Bounds().Dx()) / 2, Y: float64(turretImg.Bounds().Dy()) / 2},
+		},
 	}
-	tank.turret = &renderer.Sprite{
-		Image:    turret,
-		Position: tank.Position,
-		Rotation: 0,
-		Scale:    m.Vector2{X: 1, Y: 1},
-		Origin:   m.Vector2{X: float64(body.Bounds().Dx()) / 2, Y: float64(body.Bounds().Dy()) / 2},
-	}
-	return nil
+	return tank, nil
 }
 
 func (tank *Tank) Move(dt float64) {

@@ -16,8 +16,8 @@ func New() *Game {
 	ebiten.SetWindowSize(800, 600)
 	ebiten.SetWindowTitle("Tanks Race")
 
-	tank := &prefabs.Tank{}
-	if err := tank.Init(); err != nil {
+	tank, err := prefabs.NewTank()
+	if err != nil {
 		log.Fatal(err)
 	}
 

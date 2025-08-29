@@ -14,10 +14,6 @@ type Sprite struct {
 }
 
 func (s *Sprite) Draw(screen *ebiten.Image) {
-	if s.Image == nil {
-		return
-	}
-
 	op := &ebiten.DrawImageOptions{}
 
 	// Точка поворота (центр изображения)
@@ -32,4 +28,3 @@ func (s *Sprite) Draw(screen *ebiten.Image) {
 
 	screen.DrawImage(s.Image, op)
 }
-
