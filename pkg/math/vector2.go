@@ -1,5 +1,7 @@
 package math
 
+import "math"
+
 type Vector2 struct {
 	X, Y float64
 }
@@ -8,7 +10,17 @@ func (v Vector2) Add(other Vector2) Vector2 {
 	return Vector2{v.X + other.X, v.Y + other.Y}
 }
 
-func (v Vector2) Mul(scalar float64) Vector2{
+func (v Vector2) Mul(scalar float64) Vector2 {
 	return Vector2{v.X * scalar, v.Y * scalar}
 }
 
+func (v Vector2) Len() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func (v Vector2) Div(scalar float64) Vector2 {
+	if scalar == 0 {
+		panic("division by zero")
+	}
+	return Vector2{v.X / scalar, v.Y / scalar}
+}

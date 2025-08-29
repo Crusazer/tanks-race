@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/Crusazer/tanks-race/internal/game/systems/race"
 	"github.com/Crusazer/tanks-race/internal/graphics/assets"
 	"github.com/Crusazer/tanks-race/internal/graphics/renderer"
 	"github.com/Crusazer/tanks-race/internal/input"
+	"github.com/Crusazer/tanks-race/internal/physics/dynamics"
 	m "github.com/Crusazer/tanks-race/pkg/math"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Tank struct {
+	Body         *dynamics.Body
 	Position     m.Vector2
 	Rotation     float64
 	Velocity     m.Vector2
@@ -32,10 +35,18 @@ func NewTank() (*Tank, error) {
 	}
 
 	position := m.Vector2{X: 110, Y: 110}
-	tank := &Tank{
+	body := &dynamics.Body{
 		Position: position,
-		Rotation: 0,
-		Velocity: m.Vector2{X: 0, Y: 0},
+		MaxSpeed: 320.0,
+		Mass:     1.0,
+		Inertia:  0.8,
+	}
+
+	tank := &Tank{
+		Body:         body,
+		Position:     position,
+		Rotation:     0,
+		Velocity:     m.Vector2{X: 0, Y: 0},
 		turretOffset: m.Vector2{X: -23, Y: 0},
 		body: &renderer.Sprite{
 			Image:    bodyImg,
@@ -55,24 +66,29 @@ func NewTank() (*Tank, error) {
 	return tank, nil
 }
 
-func (tank *Tank) Move(dt float64) {
+func (t *Tank) Move(dt float64) {
 	input := input.GetInput()
+	race.Drive(t.Body, input, dt)
+	dynamics.Integrate(t.Body, dt)
 
-	if input.Up {
-		tank.Position.Y -= 100 * dt
-	}
-	if input.Down {
-		tank.Position.Y += 100 * dt
-	}
-	if input.Left {
-		tank.Position.X -= 100 * dt
-	}
-	if input.Right {
-		tank.Position.X += 100 * dt
+	// синхронизируем спрайты
+	t.body.Position = t.Body.Position
+	t.body.Rotation = t.Body.Rotation
+	
+	// крепление башни в локальных координатах танка
+	local := t.turretOffset // {-23, 0}
+
+	// поворачиваем на угол корпуса
+	cos, sin := math.Cos(t.Body.Rotation), math.Sin(t.Body.Rotation)
+	world := m.Vector2{
+		X: local.X*cos - local.Y*sin,
+		Y: local.X*sin + local.Y*cos,
 	}
 
-	tank.body.Position = tank.Position
-	tank.turret.Position = tank.Position.Add(tank.turretOffset)
+	// позиция башни = центр корпуса + повернутое смещение
+	t.body.Position = t.Body.Position
+	t.body.Rotation = t.Body.Rotation
+	t.turret.Position = t.Body.Position.Add(world)
 }
 
 func (t *Tank) UpdateAiming() {
