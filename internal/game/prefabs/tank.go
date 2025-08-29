@@ -2,6 +2,8 @@ package prefabs
 
 import (
 	"fmt"
+	"math"
+
 	"github.com/Crusazer/tanks-race/internal/graphics/assets"
 	"github.com/Crusazer/tanks-race/internal/graphics/renderer"
 	"github.com/Crusazer/tanks-race/internal/input"
@@ -10,12 +12,12 @@ import (
 )
 
 type Tank struct {
-	Position m.Vector2
-	Rotation float64
-	Velocity m.Vector2
-
-	body   *renderer.Sprite
-	turret *renderer.Sprite
+	Position     m.Vector2
+	Rotation     float64
+	Velocity     m.Vector2
+	turretOffset m.Vector2
+	body         *renderer.Sprite
+	turret       *renderer.Sprite
 }
 
 func NewTank() (*Tank, error) {
@@ -29,23 +31,25 @@ func NewTank() (*Tank, error) {
 		return nil, fmt.Errorf("failed to load turret: %w", err)
 	}
 
+	position := m.Vector2{X: 110, Y: 110}
 	tank := &Tank{
-		Position: m.Vector2{X: 0, Y: 0},
+		Position: position,
 		Rotation: 0,
 		Velocity: m.Vector2{X: 0, Y: 0},
+		turretOffset: m.Vector2{X: -23, Y: 0},
 		body: &renderer.Sprite{
 			Image:    bodyImg,
-			Position: m.Vector2{X: 0, Y: 0},
+			Position: position,
 			Rotation: 0,
 			Scale:    m.Vector2{X: 1, Y: 1},
 			Origin:   m.Vector2{X: float64(bodyImg.Bounds().Dx()) / 2, Y: float64(bodyImg.Bounds().Dy()) / 2},
 		},
 		turret: &renderer.Sprite{
 			Image:    turretImg,
-			Position: m.Vector2{X: 0, Y: 0},
+			Position: position,
 			Rotation: 0,
 			Scale:    m.Vector2{X: 1, Y: 1},
-			Origin:   m.Vector2{X: float64(turretImg.Bounds().Dx()) / 2, Y: float64(turretImg.Bounds().Dy()) / 2},
+			Origin:   m.Vector2{X: 34, Y: 28},
 		},
 	}
 	return tank, nil
@@ -68,7 +72,16 @@ func (tank *Tank) Move(dt float64) {
 	}
 
 	tank.body.Position = tank.Position
-	tank.turret.Position = tank.Position
+	tank.turret.Position = tank.Position.Add(tank.turretOffset)
+}
+
+func (t *Tank) UpdateAiming() {
+	mx, my := ebiten.CursorPosition()
+	dirX := float64(mx) - t.turret.Position.X
+	dirY := float64(my) - t.turret.Position.Y
+	angle := math.Atan2(dirY, dirX)
+
+	t.turret.Rotation = angle
 }
 
 func (tank *Tank) Draw(screen *ebiten.Image) {

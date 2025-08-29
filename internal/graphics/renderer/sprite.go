@@ -13,17 +13,15 @@ type Sprite struct {
 	Origin   m.Vector2
 }
 
+// internal/graphics/renderer/sprite.go
 func (s *Sprite) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 
-	// Точка поворота (центр изображения)
-	point := s.Image.Bounds().Size()
-	op.GeoM.Translate(-float64(point.X)/2, -float64(point.Y)/2)
-
+	op.GeoM.Translate(-s.Origin.X, -s.Origin.Y)
 	op.GeoM.Rotate(s.Rotation)
 	op.GeoM.Scale(s.Scale.X, s.Scale.Y)
 
-	// Перемещаем в нужную позицию
+	// Переносим сам Origin в нужное место мира
 	op.GeoM.Translate(s.Position.X, s.Position.Y)
 
 	screen.DrawImage(s.Image, op)

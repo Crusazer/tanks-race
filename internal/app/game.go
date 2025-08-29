@@ -27,6 +27,7 @@ func New() *Game {
 func (g *Game) Update() error {
 	dt := 1.0 / 60.0
 	g.tank.Move(dt)
+	g.tank.UpdateAiming()
 	return nil
 }
 
