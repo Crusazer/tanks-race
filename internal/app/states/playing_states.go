@@ -1,14 +1,14 @@
 package states
 
 import (
-	"image/color"
-	"log"
-
 	"github.com/Crusazer/tanks-race/internal/game/entity"
 	"github.com/Crusazer/tanks-race/internal/graphics/renderer"
 	"github.com/Crusazer/tanks-race/internal/physics"
 	m "github.com/Crusazer/tanks-race/pkg/math"
 	"github.com/hajimehoshi/ebiten/v2"
+	"image/color"
+	"log"
+	"math"
 )
 
 type PlayingRunningState struct {
@@ -60,7 +60,6 @@ func (s *PlayingRunningState) updateBounded() {
 	}
 }
 
-
 func (s *PlayingRunningState) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{200, 200, 200, 255})
 
@@ -96,6 +95,22 @@ func (s *PlayingRunningState) handleAllTanksInput() {
 			body.Force = body.Force.Add(m.Vector2{X: 1, Y: 0}.Rotate(angle).Scale(force))
 		}
 	}
+
+	// Поворот башни за мышью
+	turret_entity := s.em.GetWithComponents(entity.TurretComponent)[0]
+	turret := turret_entity.Components[entity.TurretComponent].(*entity.Turret)
+	turretSprite := turret_entity.Components[entity.SpriteComponent].(*entity.Sprite)
+	turretPos := turret_entity.Components[entity.PositionComponent].(*entity.Position)
+
+	mouseX, mouseY := ebiten.CursorPosition()
+	mouseWorldX := float64(mouseX)/s.camera.Zoom + s.camera.Position.X - s.camera.ViewportWidth/2
+	mouseWorldY := float64(mouseY)/s.camera.Zoom + s.camera.Position.Y - s.camera.ViewportHeight/2
+	dx := mouseWorldX - turretPos.Position.X
+	dy := mouseWorldY - turretPos.Position.Y
+	angle := math.Atan2(dy, dx)
+	turret.Angle = angle
+	turretSprite.Rotation = angle
+
 }
 
 func (s *PlayingRunningState) updateCamera() {
@@ -130,14 +145,13 @@ func (s *PlayingRunningState) drawEntity(screen *ebiten.Image, e *entity.Entity)
 	}
 
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(-sprite.OriginX, -sprite.OriginY)
+	op.GeoM.Translate(-sprite.OriginX, -sprite.OriginY) // центр текстуры → 0,0
 	op.GeoM.Rotate(rotation)
-	op.GeoM.Translate(pos.X, pos.Y)
 
-	// --- Камера (позиция = центр камеры) ---
-	// op.GeoM.Translate(-s.camera.Position.X, -s.camera.Position.Y)
-	// op.GeoM.Translate(float64(s.camera.ViewportWidth)/2, float64(s.camera.ViewportHeight)/2)
-	// op.GeoM.Scale(s.camera.Zoom, s.camera.Zoom)
+	op.GeoM.Translate(pos.X, pos.Y)
+	op.GeoM.Translate(-s.camera.Position.X, -s.camera.Position.Y)
+	op.GeoM.Scale(s.camera.Zoom, s.camera.Zoom)
+	op.GeoM.Translate(s.camera.ViewportWidth/2, s.camera.ViewportHeight/2)
 
 	screen.DrawImage(sprite.Image, op)
 }

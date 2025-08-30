@@ -20,7 +20,8 @@ type PlayingScene struct {
 func NewPlayingScene() Scene {
 	w := physics.NewWorld()
 	em := entity.NewManager()
-	cam := &renderer.Camera{Position: m.Vector2{X: 0, Y: 0}, Zoom: 0.6}
+	
+	cam := &renderer.Camera{Position: m.Vector2{X: 800, Y: 600}, Zoom: 0.6}
 
 	prefabs.CreateTank(em, w, 400, 300)
 
@@ -43,6 +44,8 @@ func (ps *PlayingScene) Update(dt float64) error {
 	return ps.sm.Update(dt)
 }
 func (ps *PlayingScene) Draw(screen *ebiten.Image) {
+	ps.camera.ViewportWidth  = float64(screen.Bounds().Dx())
+	ps.camera.ViewportHeight = float64(screen.Bounds().Dy())
 	ps.sm.Draw(screen)
 }
 func (ps *PlayingScene) Layout(w, h int) (int, int) { return w, h }
