@@ -1,32 +1,40 @@
 package dynamics
 
-import m "github.com/Crusazer/tanks-race/pkg/math"
+import (
+	m "github.com/Crusazer/tanks-race/pkg/math"
+	"github.com/Crusazer/tanks-race/internal/physics/shapes"
+)
 
 type Body struct {
 	Position m.Vector2
 	Velocity m.Vector2
-	Rotation float64 // radians
-	AngVel   float64 // rad/sec
+	AngVel   float64
+	Force    m.Vector2
+	Torque   float64
 
-	Mass    float64 // kg
-	Inertia float64
+	Mass     float64
+	Rotation float64
+	Inertia  float64
 
-	MaxSpeed float64
+	Shape shapes.Shape
 }
 
-func (b *Body) AddForce(f m.Vector2) {
-	a := f.Div(b.Mass)
-	b.Velocity = b.Velocity.Add(a)
+func (b *Body) AddForce(force m.Vector2) {
+	b.Force = b.Force.Add(force)
 }
 
-func (b *Body) AddTorque(t float64) {
-	alpha := t / b.Inertia
-	b.AngVel += alpha
+func (b *Body) AddTorque(torque float64) {
+	b.Torque += torque
 }
 
 func (b *Body) ClampSpeed() {
-	if l := b.Velocity.Len(); l > b.MaxSpeed{
-		b.Velocity = b.Velocity.Mul(b.MaxSpeed / l)
+	maxSpeed := 500.0
+	maxAngVel := 10.0
+	
+	if b.Velocity.Length() > maxSpeed {
+		b.Velocity = b.Velocity.Normalize().Scale(maxSpeed)
+	}
+	if b.AngVel > maxAngVel {
+		b.AngVel = maxAngVel
 	}
 }
-

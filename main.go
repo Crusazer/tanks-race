@@ -1,15 +1,18 @@
 package main
 
 import (
-	"log"
-
-	"github.com/Crusazer/tanks-race/internal/app"
-	"github.com/hajimehoshi/ebiten/v2"
+    "log"
+    "github.com/hajimehoshi/ebiten/v2"
+    "github.com/Crusazer/tanks-race/internal/app"
 )
 
 func main() {
-	game := app.New()
-	if err := ebiten.RunGame(game); err != nil {
-		log.Fatal(err)
-	}
+    ebiten.SetWindowSize(800, 600)
+    ebiten.SetWindowTitle("Tanks Race")
+    
+    game := app.New()
+    
+    if err := ebiten.RunGame(game); err != nil {
+        log.Fatal(err)
+    }
 }

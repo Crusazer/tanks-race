@@ -8,7 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func LoadTexture(path string) (*ebiten.Image, error) {
+func LoadImage(path string) (*ebiten.Image, error) {
 	file, err := os.Open("assets/sprites/" + path)
 	if err != nil {
 		return nil, err
