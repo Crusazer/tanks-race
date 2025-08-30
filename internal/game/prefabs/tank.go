@@ -40,6 +40,7 @@ func CreateTank(em *entity.Manager, world *physics.World, x, y float64) {
 		OriginX: center.X,
 		OriginY: center.Y,
 		Layer:   0,
+		Scale:   m.Vector2{X: 1, Y: 1},
 	}
 	em.SetComponent(hull, entity.PhysicsComponent, &entity.Physics{Body: hullBody})
 	em.SetComponent(hull, entity.SpriteComponent, hullSprite)
@@ -59,6 +60,7 @@ func CreateTank(em *entity.Manager, world *physics.World, x, y float64) {
 		OriginX: 50,
 		OriginY: 20,
 		Layer:   1,
+		Scale:   m.Vector2{X: 1, Y: 1},
 	}
 
 	em.SetComponent(turret, entity.PositionComponent, &entity.Position{Position: m.Vector2{X: x, Y: y}})

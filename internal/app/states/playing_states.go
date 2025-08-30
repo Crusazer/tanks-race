@@ -1,14 +1,15 @@
 package states
 
 import (
+	"image/color"
+	"log"
+	"math"
+
 	"github.com/Crusazer/tanks-race/internal/game/entity"
 	"github.com/Crusazer/tanks-race/internal/graphics/renderer"
 	"github.com/Crusazer/tanks-race/internal/physics"
 	m "github.com/Crusazer/tanks-race/pkg/math"
 	"github.com/hajimehoshi/ebiten/v2"
-	"image/color"
-	"log"
-	"math"
 )
 
 type PlayingRunningState struct {
@@ -145,6 +146,7 @@ func (s *PlayingRunningState) drawEntity(screen *ebiten.Image, e *entity.Entity)
 	}
 
 	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(sprite.Scale.X, sprite.Scale.Y)
 	op.GeoM.Translate(-sprite.OriginX, -sprite.OriginY) // центр текстуры → 0,0
 	op.GeoM.Rotate(rotation)
 

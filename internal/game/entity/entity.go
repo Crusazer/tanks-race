@@ -39,6 +39,7 @@ type Sprite struct {
 	OriginY  float64
 	Rotation float64
 	Layer    int
+	Scale    m.Vector2
 }
 
 type Vehicle struct{}
