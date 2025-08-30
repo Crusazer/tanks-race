@@ -28,8 +28,8 @@ func (b *Body) AddTorque(torque float64) {
 }
 
 func (b *Body) ClampSpeed() {
-	maxSpeed := 500.0
-	maxAngVel := 10.0
+	maxSpeed := 1000.0
+	maxAngVel := 50.0
 	
 	if b.Velocity.Length() > maxSpeed {
 		b.Velocity = b.Velocity.Normalize().Scale(maxSpeed)

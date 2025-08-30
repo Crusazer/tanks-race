@@ -13,8 +13,8 @@ import (
 
 func CreateTank(em *entity.Manager, world *physics.World, x, y float64) {
 	// === КОРПУС ===
-	const width = 128.0
-	const height = 85.0
+	const width = 85.0
+	const height = 128.0
 	const mass = 10
 	center := m.Vector2{X: width / 2, Y: height / 2}
 
@@ -23,6 +23,7 @@ func CreateTank(em *entity.Manager, world *physics.World, x, y float64) {
 		Position: m.Vector2{X: x, Y: y},
 		Mass:     mass,
 		Shape:    shapes.NewRectangle(center, width, height, 0),
+		Inertia:  mass * (width*width + height*height) / 12.0,
 	}
 	world.AddBody(hullBody)
 
@@ -55,20 +56,23 @@ func CreateTank(em *entity.Manager, world *physics.World, x, y float64) {
 	}
 	turretSprite := &entity.Sprite{
 		Image:   img,
-		Width:   128,
-		Height:  56,
-		OriginX: 50,
-		OriginY: 20,
+		Width:   56,
+		Height:  128,
+		OriginX: 29, // Центр вращения башни по X относительно спрайта башни
+		OriginY: 100, // Центр вращение башни по Y относительно спрайта башни
 		Layer:   1,
 		Scale:   m.Vector2{X: 1, Y: 1},
 	}
 
-	em.SetComponent(turret, entity.PositionComponent, &entity.Position{Position: m.Vector2{X: x, Y: y}})
+	em.SetComponent(turret, entity.PositionComponent, &entity.Position{Position: m.Vector2{
+		X: hullBody.Position.X + turretSprite.OriginX, // Центр вращения относительно мыши (вектор центр вращения -> мышка)
+		Y: hullBody.Position.Y + turretSprite.OriginY,
+	}})
 	em.SetComponent(turret, entity.SpriteComponent, turretSprite)
 	em.SetComponent(turret, entity.TurretComponent, &entity.Turret{
 		HullID: hull.ID,
 		Angle:  0,
-		Offset: m.Vector2{X: 0, Y: -8},
+		Offset: m.Vector2{X: 0, Y: 23}, // Смещение крепления башни относительно корпуса в пикселях
 	})
 
 	log.Println("Tank created")

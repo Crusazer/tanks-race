@@ -22,6 +22,7 @@ func CreateBox(em *entity.Manager, world *physics.World, x, y float64) {
 		Position: m.Vector2{X: x, Y: y},
 		Mass:     mass,
 		Shape:    shapes.NewRectangle(center, width, height, 0),
+		Inertia:  mass * (width*width + height*height) / 12.0,
 	}
 	world.AddBody(body)
 

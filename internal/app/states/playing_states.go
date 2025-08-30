@@ -8,8 +8,10 @@ import (
 	"github.com/Crusazer/tanks-race/internal/game/entity"
 	"github.com/Crusazer/tanks-race/internal/graphics/renderer"
 	"github.com/Crusazer/tanks-race/internal/physics"
+	"github.com/Crusazer/tanks-race/internal/physics/shapes"
 	m "github.com/Crusazer/tanks-race/pkg/math"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type PlayingRunningState struct {
@@ -51,8 +53,7 @@ func (s *PlayingRunningState) updateBounded() {
 
 		// смещение с учётом угла корпуса
 		rotated := turret.Offset.Rotate(hullPhysic.Body.Rotation)
-		position.Position.X = hullPhysic.Body.Position.X + rotated.X
-		position.Position.Y = hullPhysic.Body.Position.Y + rotated.Y
+		position.Position = hullPhysic.Body.Position.Add(rotated)
 
 		// угол башни → спрайт
 		if spr, ok := e.Components[entity.SpriteComponent].(*entity.Sprite); ok {
@@ -69,10 +70,13 @@ func (s *PlayingRunningState) Draw(screen *ebiten.Image) {
 			s.drawEntity(screen, e)
 		}
 	}
+
+	s.drawPhysicsBodies(screen)
 }
 
 func (s *PlayingRunningState) handleAllTanksInput() {
-	const force = 400
+	const force = 1000.0
+	const torque = 40000.0
 
 	for _, e := range s.em.GetWithComponents(entity.VehicleComponent) {
 		physic, ok := e.Components[entity.PhysicsComponent].(*entity.Physics)
@@ -84,16 +88,18 @@ func (s *PlayingRunningState) handleAllTanksInput() {
 		angle := body.Rotation
 
 		if ebiten.IsKeyPressed(ebiten.KeyW) {
-			body.Force = body.Force.Add(m.Vector2{X: 0, Y: -1}.Rotate(angle).Scale(force))
+			forward := m.Vector2{X: 0, Y: -1}.Rotate(angle)
+			body.Force = body.Force.Add(forward.Scale(force))
 		}
 		if ebiten.IsKeyPressed(ebiten.KeyS) {
-			body.Force = body.Force.Add(m.Vector2{X: 0, Y: 1}.Rotate(angle).Scale(force))
+			backward := m.Vector2{X: 0, Y: -1}.Rotate(angle).Scale(-1)
+			body.Force = body.Force.Add(backward.Scale(force))
 		}
 		if ebiten.IsKeyPressed(ebiten.KeyA) {
-			body.Force = body.Force.Add(m.Vector2{X: -1, Y: 0}.Rotate(angle).Scale(force))
+			body.Torque -= torque
 		}
 		if ebiten.IsKeyPressed(ebiten.KeyD) {
-			body.Force = body.Force.Add(m.Vector2{X: 1, Y: 0}.Rotate(angle).Scale(force))
+			body.Torque += torque
 		}
 	}
 
@@ -104,14 +110,14 @@ func (s *PlayingRunningState) handleAllTanksInput() {
 	turretPos := turret_entity.Components[entity.PositionComponent].(*entity.Position)
 
 	mouseX, mouseY := ebiten.CursorPosition()
-	mouseWorldX := float64(mouseX)/s.camera.Zoom + s.camera.Position.X - s.camera.ViewportWidth/2
-	mouseWorldY := float64(mouseY)/s.camera.Zoom + s.camera.Position.Y - s.camera.ViewportHeight/2
+	mouseWorldX := (float64(mouseX)-s.camera.ViewportWidth/2)/s.camera.Zoom + s.camera.Position.X
+	mouseWorldY := (float64(mouseY)-s.camera.ViewportHeight/2)/s.camera.Zoom + s.camera.Position.Y
+
 	dx := mouseWorldX - turretPos.Position.X
 	dy := mouseWorldY - turretPos.Position.Y
-	angle := math.Atan2(dy, dx)
+	angle := math.Atan2(dy, dx) - -math.Pi/2
 	turret.Angle = angle
 	turretSprite.Rotation = angle
-
 }
 
 func (s *PlayingRunningState) updateCamera() {
@@ -156,4 +162,44 @@ func (s *PlayingRunningState) drawEntity(screen *ebiten.Image, e *entity.Entity)
 	op.GeoM.Translate(s.camera.ViewportWidth/2, s.camera.ViewportHeight/2)
 
 	screen.DrawImage(sprite.Image, op)
+}
+
+func (s *PlayingRunningState) drawPhysicsBodies(screen *ebiten.Image) {
+	for _, body := range s.em.GetWithComponents(entity.PhysicsComponent) {
+		// Для прямоугольника
+		physicComp := body.Components[entity.PhysicsComponent].(*entity.Physics)
+		body := physicComp.Body
+
+		if rect, ok := body.Shape.(*shapes.Rectangle); ok {
+			w, h := rect.Width, rect.Height
+			corners := []m.Vector2{
+				{X: -w / 2, Y: -h / 2},
+				{X: w / 2, Y: -h / 2},
+				{X: w / 2, Y: h / 2},
+				{X: -w / 2, Y: h / 2},
+			}
+
+			for i := range corners {
+				corners[i] = corners[i].Rotate(body.Rotation).Add(body.Position)
+				// смещение камеры
+				corners[i].X = (corners[i].X-s.camera.Position.X)*s.camera.Zoom + s.camera.ViewportWidth/2
+				corners[i].Y = (corners[i].Y-s.camera.Position.Y)*s.camera.Zoom + s.camera.ViewportHeight/2
+			}
+
+			// Нарисовать линии между углами
+			for i := 0; i < 4; i++ {
+				next := (i + 1) % 4
+				vector.StrokeLine(
+					screen,
+					float32(corners[i].X),
+					float32(corners[i].Y),
+					float32(corners[next].X),
+					float32(corners[next].Y),
+					1,
+					color.RGBA{255, 0, 0, 255},
+					false,
+				)
+			}
+		}
+	}
 }

@@ -5,13 +5,14 @@ import (
 	"github.com/Crusazer/tanks-race/internal/physics/dynamics"
 	"github.com/Crusazer/tanks-race/internal/physics/shapes"
 	m "github.com/Crusazer/tanks-race/pkg/math"
+
+	"math"
 )
 
 type World struct {
 	bodies     []*dynamics.Body
 	rectangles []*shapes.Rectangle
 	detector   *collision.Detector
-	gravity    m.Vector2
 }
 
 func NewWorld() *World {
@@ -19,7 +20,6 @@ func NewWorld() *World {
 		bodies:     make([]*dynamics.Body, 0),
 		rectangles: make([]*shapes.Rectangle, 0),
 		detector:   collision.NewDetector(),
-		gravity:    m.Vector2{X: 0, Y: 0},
 	}
 }
 
@@ -38,24 +38,53 @@ func (w *World) AddBody(body *dynamics.Body) {
 	}
 }
 
+func (w *World) GetBodies() []*dynamics.Body {
+	return w.bodies
+}
+
 func (w *World) integrate(dt float64) {
 	for _, body := range w.bodies {
 		if body.Mass <= 0 {
 			continue // Пропускаем статические тела
 		}
 
-		// Применяем силу к ускорению
+		// --- Линейная динамика ---
 		acceleration := body.Force.Scale(1 / body.Mass)
 		body.Velocity = body.Velocity.Add(acceleration.Scale(dt))
-
-		// Применяем гравитацию
-		body.Velocity = body.Velocity.Add(w.gravity.Scale(dt))
-
-		// Обновляем позицию
 		body.Position = body.Position.Add(body.Velocity.Scale(dt))
 
-		// Обнуляем силу для следующего кадра
+		// --- Линейное трение ---
+		if body.Velocity.Length() > 0 {
+			frictionCoeff := 0.5 // коэффициент трения, можно настраивать
+			frictionForce := body.Velocity.Normalize().Scale(-frictionCoeff * body.Mass)
+			body.Velocity = body.Velocity.Add(frictionForce.Scale(dt))
+
+			// Предотвращаем смену направления из-за трения
+			if body.Velocity.Dot(frictionForce) > 0 {
+				body.Velocity = m.Vector2{X: 0, Y: 0}
+			}
+		}
+
+		// --- Угловая динамика ---
+		angAcc := body.Torque / body.Inertia
+		body.AngVel += angAcc * dt
+		body.Rotation += body.AngVel * dt
+
+		// --- Угловое трение ---
+		if math.Abs(body.AngVel) > 0 {
+			angularFriction := 0.3 // коэффициент углового трения
+			angFriction := -math.Copysign(angularFriction, body.AngVel)
+			body.AngVel += angFriction * dt
+
+			// Предотвращаем "перекрут" через ноль
+			if body.AngVel*angFriction > 0 {
+				body.AngVel = 0
+			}
+		}
+
+		// Обнуляем силы и моменты для следующего кадра
 		body.Force = m.Vector2{X: 0, Y: 0}
+		body.Torque = 0
 	}
 }
 
