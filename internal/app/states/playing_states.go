@@ -1,6 +1,7 @@
 package states
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"github.com/Crusazer/tanks-race/internal/physics/shapes"
 	m "github.com/Crusazer/tanks-race/pkg/math"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -72,11 +74,13 @@ func (s *PlayingRunningState) Draw(screen *ebiten.Image) {
 	}
 
 	s.drawPhysicsBodies(screen)
+	debugString := fmt.Sprintf("FPS: %.2f\nTPS: %.2f", ebiten.ActualFPS(), ebiten.ActualTPS())
+	ebitenutil.DebugPrintAt(screen, debugString, 0, 0)
 }
 
 func (s *PlayingRunningState) handleAllTanksInput() {
-	const force = 1000.0
-	const torque = 40000.0
+	const force = 10000.0
+	const torque = 200000.0
 
 	for _, e := range s.em.GetWithComponents(entity.VehicleComponent) {
 		physic, ok := e.Components[entity.PhysicsComponent].(*entity.Physics)

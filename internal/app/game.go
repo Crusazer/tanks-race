@@ -16,7 +16,7 @@ func New() *Game {
 }
 
 func (g *Game) Update() error {
-	return g.sceneMgr.Update(1.0 / 60.0)
+	return g.sceneMgr.Update(1.0 / 60)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {

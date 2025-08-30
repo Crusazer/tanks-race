@@ -43,25 +43,26 @@ func (w *World) GetBodies() []*dynamics.Body {
 }
 
 func (w *World) integrate(dt float64) {
+	const linearDamping = 2.0  // коэффициент линейного трения (чем выше, тем быстрее затухает)
+	const angularDamping = 2.5 // коэффициент углового трения
+
 	for _, body := range w.bodies {
 		if body.Mass <= 0 {
-			continue // Пропускаем статические тела
+			continue // статическое тело
 		}
 
 		// --- Линейная динамика ---
-		acceleration := body.Force.Scale(1 / body.Mass)
-		body.Velocity = body.Velocity.Add(acceleration.Scale(dt))
+		acc := body.Force.Scale(1 / body.Mass)
+		body.Velocity = body.Velocity.Add(acc.Scale(dt))
 		body.Position = body.Position.Add(body.Velocity.Scale(dt))
 
-		// --- Линейное трение ---
+		// Линейное трение (экспоненциальное затухание)
 		if body.Velocity.Length() > 0 {
-			frictionCoeff := 0.5 // коэффициент трения, можно настраивать
-			frictionForce := body.Velocity.Normalize().Scale(-frictionCoeff * body.Mass)
-			body.Velocity = body.Velocity.Add(frictionForce.Scale(dt))
+			damp := math.Exp(-linearDamping * dt)
+			body.Velocity = body.Velocity.Scale(damp)
 
-			// Предотвращаем смену направления из-за трения
-			if body.Velocity.Dot(frictionForce) > 0 {
-				body.Velocity = m.Vector2{X: 0, Y: 0}
+			if body.Velocity.Length() < 0.001 {
+				body.Velocity = m.Vector2{} // обнуляем мелкие значения
 			}
 		}
 
@@ -70,23 +71,22 @@ func (w *World) integrate(dt float64) {
 		body.AngVel += angAcc * dt
 		body.Rotation += body.AngVel * dt
 
-		// --- Угловое трение ---
+		// Угловое трение (экспоненциальное затухание)
 		if math.Abs(body.AngVel) > 0 {
-			angularFriction := 0.3 // коэффициент углового трения
-			angFriction := -math.Copysign(angularFriction, body.AngVel)
-			body.AngVel += angFriction * dt
+			damp := math.Exp(-angularDamping * dt)
+			body.AngVel *= damp
 
-			// Предотвращаем "перекрут" через ноль
-			if body.AngVel*angFriction > 0 {
+			if math.Abs(body.AngVel) < 0.001 {
 				body.AngVel = 0
 			}
 		}
 
-		// Обнуляем силы и моменты для следующего кадра
-		body.Force = m.Vector2{X: 0, Y: 0}
+		// Сброс сил
+		body.Force = m.Vector2{}
 		body.Torque = 0
 	}
 }
+
 
 func (w *World) Update(dt float64) {
 	// Интеграция движения
