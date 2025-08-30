@@ -21,9 +21,10 @@ func NewPlayingScene() Scene {
 	w := physics.NewWorld()
 	em := entity.NewManager()
 	
-	cam := &renderer.Camera{Position: m.Vector2{X: 800, Y: 600}, Zoom: 0.6}
+	tankPosition := m.Vector2{X: 0,Y: 0}
+	cam := &renderer.Camera{Position: tankPosition, Zoom: 0.6}
 
-	prefabs.CreateTank(em, w, 400, 300)
+	prefabs.CreateTank(em, w, tankPosition.X, tankPosition.Y)
 
 	return &PlayingScene{
 		world:  w,
