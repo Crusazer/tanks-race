@@ -14,7 +14,7 @@ import (
 func CreateBox(em *entity.Manager, world *physics.World, x, y float64) {
 	const width = 100.0
 	const height = 100.0
-	const mass = 1
+	const mass = 0.1
 
 	center := m.Vector2{X: width / 2, Y: height / 2}
 

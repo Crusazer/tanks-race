@@ -72,7 +72,7 @@ func (w *World) integrate(dt float64) {
 		body.Rotation += body.AngVel * dt
 
 		// Угловое трение (экспоненциальное затухание)
-		if math.Abs(body.AngVel) > 0 {
+		if math.Abs(body.AngVel) > 0.0001 {
 			damp := math.Exp(-angularDamping * dt)
 			body.AngVel *= damp
 
@@ -116,59 +116,141 @@ func (w *World) resolveCollisions(collisions []collision.CollisionResult) {
 func (w *World) resolveCollision(col collision.CollisionResult) {
 	bodyA := col.BodyA
 	bodyB := col.BodyB
-
-	// Пропускаем, если оба тела статические
-	if bodyA.Mass <= 0 && bodyB.Mass <= 0 {
+	if bodyA == nil || bodyB == nil || col.SATResult == nil {
 		return
 	}
 
-	// Раздвигаем тела
-	separation := col.SATResult.Normal.Scale(col.SATResult.Overlap)
+	// Нормаль столкновения (нормализуем на всякий случай)
+	n := col.SATResult.Normal
+	nLen := math.Hypot(n.X, n.Y)
+	if nLen == 0 {
+		return
+	}
+	n = m.Vector2{X: n.X / nLen, Y: n.Y / nLen}
 
-	if bodyA.Mass <= 0 {
-		// bodyA статический
-		bodyB.Position = bodyB.Position.Add(separation)
-	} else if bodyB.Mass <= 0 {
-		// bodyB статический
-		bodyA.Position = bodyA.Position.Sub(separation)
-	} else {
-		// Оба движутся
-		totalMass := bodyA.Mass + bodyB.Mass
-		ratioA := bodyB.Mass / totalMass
-		ratioB := bodyA.Mass / totalMass
-
-		bodyA.Position = bodyA.Position.Sub(separation.Scale(ratioA))
-		bodyB.Position = bodyB.Position.Add(separation.Scale(ratioB))
+	// CONTACT POINT (используем Contact1, если он задан)
+	contact := col.SATResult.Contact1
+	// fallback: средняя точка между центрами (хуже, но безопасно)
+	if contact == (m.Vector2{}) {
+		contact = bodyA.Position.Add(bodyB.Position).Scale(0.5)
 	}
 
-	// Простая реакция - отражение скорости
-	relativeVel := bodyB.Velocity.Sub(bodyA.Velocity)
-	separatingSpeed := relativeVel.Dot(col.SATResult.Normal)
-
-	if separatingSpeed > 0 {
-		return // Объекты уже разлетаются
+	// POSITONAL CORRECTION (чтобы убрать проникание)
+	const percent = 0.8   // сколько исправлять (0..1)
+	const slop = 0.01     // небольшая "погрешность", которую не исправляем
+	overlap := col.SATResult.Overlap
+	if overlap > slop {
+		var invMassA, invMassB float64
+		if bodyA.Mass > 0 {
+			invMassA = 1.0 / bodyA.Mass
+		}
+		if bodyB.Mass > 0 {
+			invMassB = 1.0 / bodyB.Mass
+		}
+		correctionMag := (math.Max(overlap-slop, 0.0) / (invMassA + invMassB)) * percent
+		correction := n.Scale(correctionMag)
+		if bodyA.Mass > 0 {
+			bodyA.Position = bodyA.Position.Sub(correction.Scale(invMassA))
+		}
+		if bodyB.Mass > 0 {
+			bodyB.Position = bodyB.Position.Add(correction.Scale(invMassB))
+		}
 	}
 
-	// Коэффициент упругости (можно сделать настраиваемым)
-	restitution := 0.8
+	// Векторы от центров масс до точки контакта
+	rA := contact.Sub(bodyA.Position)
+	rB := contact.Sub(bodyB.Position)
 
-	// Вычисляем импульс
-	impulse := -(1 + restitution) * separatingSpeed
-	if bodyA.Mass > 0 && bodyB.Mass > 0 {
-		impulse /= (1/bodyA.Mass + 1/bodyB.Mass)
-	} else if bodyA.Mass > 0 {
-		impulse /= (1 / bodyA.Mass)
-	} else {
-		impulse /= (1 / bodyB.Mass)
+	// Скорость точки контакта учитывая угловую скорость: v + ω × r
+	velA_contact := bodyA.Velocity.Add(m.Vector2{X: -bodyA.AngVel * rA.Y, Y: bodyA.AngVel * rA.X})
+	velB_contact := bodyB.Velocity.Add(m.Vector2{X: -bodyB.AngVel * rB.Y, Y: bodyB.AngVel * rB.X})
+
+	// Относительная скорость в точке контакта (B относительно A)
+	relVel := velB_contact.Sub(velA_contact)
+
+	// Нормальная составляющая скорости (если скорость направлена в разлёт — игнорируем)
+	velAlongNormal := relVel.Dot(n)
+	if velAlongNormal > 0 {
+		return
 	}
 
-	impulseVec := col.SATResult.Normal.Scale(impulse)
+	// Параметры материала
+	restitution := 0.8 // упругость, можно вынести в Body или в коллайдер
+	mu := 0.5          // коэффициент трения (кулона)
 
-	// Применяем импульс
+	// Инверсные массы / инверсия инерции
+	var invMassA, invMassB float64
 	if bodyA.Mass > 0 {
-		bodyA.Velocity = bodyA.Velocity.Sub(impulseVec.Scale(1 / bodyA.Mass))
+		invMassA = 1.0 / bodyA.Mass
 	}
 	if bodyB.Mass > 0 {
-		bodyB.Velocity = bodyB.Velocity.Add(impulseVec.Scale(1 / bodyB.Mass))
+		invMassB = 1.0 / bodyB.Mass
+	}
+	var invInertiaA, invInertiaB float64
+	if bodyA.Inertia > 0 {
+		invInertiaA = 1.0 / bodyA.Inertia
+	}
+	if bodyB.Inertia > 0 {
+		invInertiaB = 1.0 / bodyB.Inertia
+	}
+
+	// Кроссы r × n (в 2D это скаляр)
+	crossRA_N := rA.X*n.Y - rA.Y*n.X
+	crossRB_N := rB.X*n.Y - rB.Y*n.X
+
+	// Знаменатель для нормального импульса (учитывает вращение)
+	denom := invMassA + invMassB + (crossRA_N*crossRA_N)*invInertiaA + (crossRB_N*crossRB_N)*invInertiaB
+	if denom == 0 {
+		return
+	}
+
+	// Нормальный импульс J
+	j := -(1 + restitution) * velAlongNormal / denom
+	impulse := n.Scale(j)
+
+	// Применяем нормальный импульс: линейный + угловой
+	if bodyA.Mass > 0 {
+		bodyA.Velocity = bodyA.Velocity.Sub(impulse.Scale(invMassA))
+		// Δω = - (rA × impulse) / I_A  (знак минус потому что A получает -impulse)
+		bodyA.AngVel -= (rA.X*impulse.Y - rA.Y*impulse.X) * invInertiaA
+	}
+	if bodyB.Mass > 0 {
+		bodyB.Velocity = bodyB.Velocity.Add(impulse.Scale(invMassB))
+		bodyB.AngVel += (rB.X*impulse.Y - rB.Y*impulse.X) * invInertiaB
+	}
+
+	// --- Касательное трение (Coulomb) ---
+	// tangent direction
+	tangent := relVel.Sub(n.Scale(relVel.Dot(n)))
+	if tangent.Length() > 1e-9 {
+		t := tangent.Normalize()
+
+		// cross for tangent
+		crossRA_T := rA.X*t.Y - rA.Y*t.X
+		crossRB_T := rB.X*t.Y - rB.Y*t.X
+
+		denomT := invMassA + invMassB + (crossRA_T*crossRA_T)*invInertiaA + (crossRB_T*crossRB_T)*invInertiaB
+		if denomT > 0 {
+			// jt = - v_rel·t / denomT
+			jt := -relVel.Dot(t) / denomT
+
+			// ограничиваем величину по закону Кулона: |jt| <= mu * j_normal
+			maxF := mu * math.Abs(j)
+			if math.Abs(jt) > maxF {
+				jt = math.Copysign(maxF, jt)
+			}
+
+			impulseT := t.Scale(jt)
+
+			if bodyA.Mass > 0 {
+				bodyA.Velocity = bodyA.Velocity.Sub(impulseT.Scale(invMassA))
+				bodyA.AngVel -= (rA.X*impulseT.Y - rA.Y*impulseT.X) * invInertiaA
+			}
+			if bodyB.Mass > 0 {
+				bodyB.Velocity = bodyB.Velocity.Add(impulseT.Scale(invMassB))
+				bodyB.AngVel += (rB.X*impulseT.Y - rB.Y*impulseT.X) * invInertiaB
+			}
+		}
 	}
 }
+
