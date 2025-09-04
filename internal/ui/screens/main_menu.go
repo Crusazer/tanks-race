@@ -37,7 +37,7 @@ func NewMainMenu(onAction func(MenuAction), theme *core.Theme) *MainMenu {
 	singlePlayButton := core.NewButton("Одиночная игра", 240, 40, func() { onAction(ActionSinglePlay) }, theme)
 	layout.Add(singlePlayButton)
 
-	networkPlayButton := core.NewButton("Игра по сети", 240, 40, func() { onAction(ActionNetworkPlay); fmt.Println("Нажата: Игра по сети") }, theme)
+	networkPlayButton := core.NewButton("Игра по сети", 240, 40, func() { onAction(ActionNetworkPlay) }, theme)
 	layout.Add(networkPlayButton)
 
 	editorButton := core.NewButton("Редактор уровней", 240, 40, func() { onAction(ActionEditor); fmt.Println("Нажата: Редактор уровней") }, theme)

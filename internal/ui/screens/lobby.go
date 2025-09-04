@@ -1,119 +1,213 @@
 package screens
 
-// import (
-// 	"fmt"
-// 	"image/color"
+import (
+	"fmt"
 
-// 	"github.com/Crusazer/tanks-race/internal/input"
-// 	"github.com/Crusazer/tanks-race/internal/ui/core" // Обновленный core
+	"github.com/Crusazer/tanks-race/internal/input"
+	"github.com/Crusazer/tanks-race/internal/ui/core"
 
-// 	"github.com/hajimehoshi/ebiten/v2"
-// )
+	"github.com/hajimehoshi/ebiten/v2"
+)
 
-// type Lobby struct {
-// 	layout        core.Layout
-// 	inputSystem   *input.InputSystem
-// 	focusedWidget core.Widget // Управление фокусом
-// 	ipInput       *core.TextInput
-// 	portInput     *core.TextInput
-// 	connectButton *core.Button
-// 	statusLabel   *core.Label
-// }
+type Lobby struct {
+	layout        core.Layout
+	inputSystem   *input.InputSystem
+	focusedWidget core.Widget
 
-// func NewLobby() *Lobby {
-// 	layout := core.NewVerticalFlowLayout(30, 10)
+	ipInput       *core.TextInput
+	portInput     *core.TextInput
+	connectButton *core.Button
+	statusLabel   *core.Label
 
-// 	ipInput := core.NewTextInput(240, 40, "IP адрес")
-// 	ipInput.Text = "127.0.0.1" // Значение по умолчанию
-// 	layout.Add(ipInput)
+	theme *core.Theme
+}
 
-// 	portInput := core.NewTextInput(240, 40, "Порт")
-// 	portInput.Text = "7777" // Значение по умолчанию
-// 	layout.Add(portInput)
+func NewLobby(theme *core.Theme) *Lobby {
+	if theme == nil {
+		theme = core.DefaultTheme
+	}
 
-// 	connectButton := core.NewButton("Подключиться", 240, 40, func() {
-// 		fmt.Printf("Подключение к %s:%s...\n", ipInput.Text, portInput.Text)
-// 		// Здесь будет логика подключения
-// 	})
-// 	layout.Add(connectButton)
+	layout := core.NewVerticalFlowLayout(30, 10)
 
-// 	statusLabel := core.NewLabel("Статус: Ожидание ввода", color.White)
-// 	layout.Add(statusLabel)
+	ipInput := core.NewTextInput(240, 40, "IP адрес", theme)
+	ipInput.Text = "127.0.0.1"
+	layout.Add(ipInput)
 
-// 	return &Lobby{
-// 		layout:        layout,
-// 		inputSystem:   input.NewInputSystem(),
-// 		ipInput:       ipInput,
-// 		portInput:     portInput,
-// 		connectButton: connectButton,
-// 		statusLabel:   statusLabel,
-// 	}
-// }
+	portInput := core.NewTextInput(240, 40, "Порт", theme)
+	portInput.Text = "7777"
+	layout.Add(portInput)
 
-// func (l *Lobby) Update() error {
-// 	l.inputSystem.UpdateUI()
+	connectButton := core.NewButton("Подключиться", 240, 40, func() {
+		fmt.Printf("Подключение к %s:%s...\n", ipInput.Text, portInput.Text)
+		// TODO: Реализовать логику подключения
+	}, theme)
+	layout.Add(connectButton)
+	
+	statusLabel := core.NewLabel("Статус: Ожидание ввода", theme)
+	layout.Add(statusLabel)
 
-// 	mousePos := l.inputSystem.GetMousePosition()
-// 	isMousePressed := l.inputSystem.IsUIActionJustPressed(input.UIActionSelect)
-// 	isMouseHeld := l.inputSystem.IsUIActionPressed(input.UIActionSelect)
-// 	isMouseReleased := l.inputSystem.IsUIActionJustReleased(input.UIActionSelect)
+	return &Lobby{
+		layout:        layout,
+		inputSystem:   input.NewInputSystem(),
+		ipInput:       ipInput,
+		portInput:     portInput,
+		connectButton: connectButton,
+		statusLabel:   statusLabel,
+		theme:         theme,
+	}
+}
 
-// 	// Обновление и обработка событий мыши для всех виджетов
-// 	hoveredWidget := core.Widget(nil)
-// 	for _, w := range l.layout.Widgets() {
-// 		if w.IsVisible() {
-// 			w.HandleMouseEvent(mousePos, isMouseHeld, isMouseReleased)
+func (l *Lobby) Update() error {
+	l.inputSystem.UpdateUI()
 
-// 			if isMousePressed && w.Contains(mousePos) && w.IsFocusable() {
-// 				if l.focusedWidget != nil && l.focusedWidget != w {
-// 					l.focusedWidget.SetFocused(false)
-// 				}
-// 				l.focusedWidget = w
-// 				l.focusedWidget.SetFocused(true)
-// 			}
-// 			if w.Contains(mousePos) {
-// 				hoveredWidget = w
-// 			}
-// 		}
-// 	}
+	mousePos := l.inputSystem.GetMousePosition()
+	isMousePressed := l.inputSystem.IsUIActionJustPressed(input.UIActionSelect)
+	isMouseHeld := l.inputSystem.IsUIActionPressed(input.UIActionSelect)
+	isMouseReleased := l.inputSystem.IsUIActionJustReleased(input.UIActionSelect)
 
-// 	if isMousePressed && hoveredWidget == nil && l.focusedWidget != nil {
-// 		l.focusedWidget.SetFocused(false)
-// 		l.focusedWidget = nil
-// 	}
+	// Обработка мыши и фокуса
+	hoveredWidget := core.Widget(nil)
+	for _, w := range l.layout.Widgets() {
+		if w.IsVisible() {
+			w.HandleMouseEvent(mousePos, isMouseHeld, isMouseReleased)
 
-// 	// Обработка клавиатуры для сфокусированного виджета
-// 	if l.focusedWidget != nil {
-// 		keys := ebiten.AppendPressedKeys([]ebiten.Key{})
-// 		inputChars := ebiten.InputChars()
+			if isMousePressed && w.Contains(mousePos) && w.IsFocusable() {
+				l.setFocus(w)
+			}
+			if w.Contains(mousePos) {
+				hoveredWidget = w
+			}
+		}
+	}
 
-// 		for _, key := range keys {
-// 			if ebiten.IsKeyJustPressed(key) {
-// 				l.focusedWidget.HandleKeyboardEvent(key, 0)
-// 			}
-// 		}
-// 		for _, r := range inputChars {
-// 			l.focusedWidget.HandleKeyboardEvent(ebiten.Key(0), r)
-// 		}
-// 	}
+	if isMousePressed && hoveredWidget == nil {
+		l.setFocus(nil)
+	}
 
-// 	// Обновление внутренних состояний виджетов (например, мигающий курсор в TextInput)
-// 	for _, w := range l.layout.Widgets() {
-// 		if w.IsVisible() {
-// 			w.Update()
-// 		}
-// 	}
+	// Обработка навигации по клавиатуре
+	if l.inputSystem.IsUIActionJustPressed(input.UIActionNavigateUp) {
+		l.focusPreviousWidget()
+	}
+	if l.inputSystem.IsUIActionJustPressed(input.UIActionNavigateDown) {
+		l.focusNextWidget()
+	}
 
-// 	return nil
-// }
+	// Если нет фокуса, но была попытка навигации или подтверждения — ставим фокус на первый виджет
+	if l.focusedWidget == nil &&
+		(l.inputSystem.IsUIActionJustPressed(input.UIActionNavigateUp) ||
+			l.inputSystem.IsUIActionJustPressed(input.UIActionNavigateDown) ||
+			l.inputSystem.IsUIActionJustPressed(input.UIActionConfirm)) {
+		l.focusFirstWidget()
+	}
 
-// func (l *Lobby) Draw(screen *ebiten.Image) {
-// 	w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
-// 	l.layout.ComputeBounds(w, h)
+	// Передача действий и символов сфокусированному виджету
+	if l.focusedWidget != nil {
+		if l.inputSystem.IsUIActionJustPressed(input.UIActionConfirm) {
+			l.focusedWidget.HandleAction(input.UIActionConfirm)
+		}
+		if l.inputSystem.IsUIActionJustPressed(input.UIActionBackspace) {
+			l.focusedWidget.HandleAction(input.UIActionBackspace)
+		}
 
-// 	for _, w := range l.layout.Widgets() {
-// 		if w.IsVisible() {
-// 			w.Draw(screen)
-// 		}
-// 	}
-// }
+		chars := l.inputSystem.GetInputChars()
+		if len(chars) > 0 {
+			l.focusedWidget.HandleChars(chars)
+		}
+	}
+
+	// Обновление виджетов
+	for _, w := range l.layout.Widgets() {
+		if w.IsVisible() {
+			w.Update()
+		}
+	}
+
+	return nil
+}
+
+func (l *Lobby) Draw(screen *ebiten.Image) {
+	w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
+	l.layout.ComputeBounds(w, h)
+
+	for _, w := range l.layout.Widgets() {
+		if w.IsVisible() {
+			w.Draw(screen)
+		}
+	}
+}
+
+// Фокус и навигация
+
+func (l *Lobby) setFocus(w core.Widget) {
+	if l.focusedWidget == w {
+		return
+	}
+	if l.focusedWidget != nil {
+		l.focusedWidget.SetFocused(false)
+	}
+	l.focusedWidget = w
+	if l.focusedWidget != nil {
+		l.focusedWidget.SetFocused(true)
+	}
+}
+
+func (l *Lobby) getFocusableWidgets() []core.Widget {
+	var result []core.Widget
+	for _, w := range l.layout.Widgets() {
+		if w.IsVisible() && w.IsFocusable() {
+			result = append(result, w)
+		}
+	}
+	return result
+}
+
+func (l *Lobby) focusNextWidget() {
+	focusable := l.getFocusableWidgets()
+	if len(focusable) == 0 {
+		return
+	}
+
+	var currentIndex int = -1
+	for i, w := range focusable {
+		if w == l.focusedWidget {
+			currentIndex = i
+			break
+		}
+	}
+
+	nextIndex := 0
+	if currentIndex != -1 {
+		nextIndex = (currentIndex + 1) % len(focusable)
+	}
+
+	l.setFocus(focusable[nextIndex])
+}
+
+func (l *Lobby) focusPreviousWidget() {
+	focusable := l.getFocusableWidgets()
+	if len(focusable) == 0 {
+		return
+	}
+
+	var currentIndex int = -1
+	for i, w := range focusable {
+		if w == l.focusedWidget {
+			currentIndex = i
+			break
+		}
+	}
+
+	prevIndex := len(focusable) - 1
+	if currentIndex != -1 {
+		prevIndex = (currentIndex - 1 + len(focusable)) % len(focusable)
+	}
+
+	l.setFocus(focusable[prevIndex])
+}
+
+func (l *Lobby) focusFirstWidget() {
+	focusable := l.getFocusableWidgets()
+	if len(focusable) > 0 {
+		l.setFocus(focusable[0])
+	}
+}

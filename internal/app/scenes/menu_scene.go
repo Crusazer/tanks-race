@@ -38,6 +38,8 @@ func (m *MenuScene) HandleManuAction(action screens.MenuAction) {
 	switch action {
 	case screens.ActionSinglePlay:
 		m.sceneManager.ChangeScene(NewPlayingScene())
+	case screens.ActionNetworkPlay:
+		m.sceneManager.ChangeScene(NewLobbyScene(m.sceneManager))
 	case screens.ActionExit:
 		os.Exit(0)
 	}

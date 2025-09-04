@@ -60,7 +60,6 @@ type Widget interface {
 	IsVisible() bool
 	SetVisible(visible bool)
 
-	// === НОВЫЕ МЕТОДЫ ДЛЯ ВВОДА ===
 	HandleMouseEvent(mousePos m.Vector2, isPressed bool, isReleased bool)
 	HandleAction(action input.UIAction) // Обработка дискретных действий (Enter, Backspace)
 	HandleChars(chars []rune)           // Обработка ввода текста

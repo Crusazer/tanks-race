@@ -1,72 +1,96 @@
 package core
 
-// import (
-// 	"image/color"
+import (
+	"image/color"
 
-// 	m "github.com/Crusazer/tanks-race/pkg/math"
-// 	"github.com/Crusazer/tanks-race/pkg/resources"
-// 	"github.com/hajimehoshi/ebiten/v2"
-// 	"github.com/hajimehoshi/ebiten/v2/text/v2"
-// )
+	"github.com/Crusazer/tanks-race/internal/input"
+	m "github.com/Crusazer/tanks-race/pkg/math"
+	"github.com/Crusazer/tanks-race/pkg/resources"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+)
 
-// type Label struct {
-// 	BaseWidget
-// 	Text      string
-// 	TextColor color.Color
-// 	Font      *text.GoTextFace // Используем ваш шрифт
-// }
+type Label struct {
+	BaseWidget               // встраиваем базовый виджет (позиция, размер, видимость)
+	Text        string       // отображаемый текст
+	Color       color.Color  // цвет текста
+	Font        text.Face    // шрифт (используем общий UI‑шрифт)
+	theme       *Theme       // ссылка на тему (чтобы можно было менять цвет через неё)
+}
 
-// func NewLabel(text string, textColor color.Color) *Label {
-// 	return &Label{
-// 		BaseWidget: BaseWidget{
-// 			Visible: true,
-// 		},
-// 		Text:      text,
-// 		TextColor: textColor,
-// 		Font:      resources.UIFont, // Ваш шрифт
-// 	}
-// }
+// NewLabel создаёт метку. Тема передаётся явно, но если её нет – берём DefaultTheme.
+func NewLabel(text string, theme *Theme) *Label {
+	if theme == nil {
+		theme = DefaultTheme
+	}
+	return &Label{
+		BaseWidget: BaseWidget{
+			Visible: true,
+		},
+		Text:  text,
+		Color: theme.LabelTextColor,
+		Font:  resources.UIFont, // общий UI‑шрифт
+		theme: theme,
+	}
+}
 
-// func (l *Label) PreferredSize() (w, h int) {
-// 	op := &text.DrawOptions{}
-// 	op.LineSpacing = l.Font.LineHeight
-// 	width, height := text.Measure(l.Text, l.Font, op.LineSpacing)
-// 	return int(width), int(height)
-// }
+func (l *Label) PreferredSize() (w, h int) {
+	if l.Font == nil {
+		l.Font = resources.UIFont
+	}
+	op := &text.DrawOptions{}
+	wf, hf := text.Measure(l.Text, l.Font, op.LineSpacing)
+	return int(wf), int(hf)
+}
 
-// func (l *Label) Update() {
-// 	// Label не имеет динамического состояния
-// }
+// Update – у метки нет динамического состояния, но метод обязателен.
+func (l *Label) Update() { /* no‑op */ }
 
-// func (l *Label) HandleMouseEvent(mousePos m.Vector2, isPressed bool, isReleased bool) {
-// 	// Label не реагирует на мышь
-// }
+// HandleMouseEvent – метка не реагирует на мышь.
+func (l *Label) HandleMouseEvent(mousePos m.Vector2, isPressed bool, isReleased bool) {
+	/* no‑op */
+}
 
-// func (l *Label) HandleKeyboardEvent(key ebiten.Key, r rune) {
-// 	// Label не реагирует на клавиатуру
-// }
+// HandleAction – метка не получает действий (Enter, Backspace и т.п.).
+func (l *Label) HandleAction(action input.UIAction) {
+	/* no‑op */
+}
 
-// func (l *Label) SetFocused(focused bool) {
-// 	// Label не может быть в фокусе
-// }
+// HandleChars – метка не принимает ввод символов.
+func (l *Label) HandleChars(chars []rune) {
+	/* no‑op */
+}
 
-// func (l *Label) IsFocusable() bool {
-// 	return false // Label не может получать фокус
-// }
+// SetFocused – метка не может быть в фокусе, но реализуем метод, чтобы соответствовать интерфейсу.
+func (l *Label) SetFocused(focused bool) {
+	// Мы просто игнорируем, но сохраняем состояние в BaseWidget
+	l.BaseWidget.SetFocused(focused)
+}
 
-// func (l *Label) Draw(dst *ebiten.Image) {
-// 	if !l.Visible {
-// 		return
-// 	}
+// IsFocusable – метка не интерактивна.
+func (l *Label) IsFocusable() bool { return false }
 
-// 	op := &text.DrawOptions{}
-// 	w, h := text.Measure(l.Text, l.Font, op.LineSpacing)
+func (l *Label) Draw(dst *ebiten.Image) {
+	if !l.Visible {
+		return
+	}
 
-// 	// Центрируем текст внутри bounds (или можно задать выравнивание)
-// 	op.GeoM.Translate(
-// 		l.Pos.X+float64(l.Width)/2-w/2,
-// 		l.Pos.Y+float64(l.Height)/2-h/2,
-// 	)
-// 	op.ColorScale.SetColor(l.TextColor)
-// 	text.Draw(dst, l.Text, l.Font, op)
-// }
+	// Если в будущем захотим подсвечивать метку при фокусе,
+	// можно добавить рамку аналогично Button/TextInput.
+	// Сейчас просто рисуем текст.
+
+	// Подготовка опций
+	op := &text.DrawOptions{}
+	op.LineSpacing = l.Font.Metrics().HLineGap // используем высоту строки шрифта
+
+	// Центрируем текст внутри текущих границ виджета
+	w, h := text.Measure(l.Text, l.Font, op.LineSpacing)
+	x := l.Pos.X + float64(l.Width)/2 - w/2
+	y := l.Pos.Y + float64(l.Height)/2 - h/2
+	op.GeoM.Translate(x, y)
+
+	// Применяем цвет (ColorScale – умножаем на нужный цвет)
+	op.ColorScale.ScaleWithColor(l.Color)
+
+	text.Draw(dst, l.Text, l.Font, op)
+}
