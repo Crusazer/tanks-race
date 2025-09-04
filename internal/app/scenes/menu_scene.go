@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"os"
 
+	"github.com/Crusazer/tanks-race/internal/ui/core"
 	"github.com/Crusazer/tanks-race/internal/ui/screens"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -15,7 +16,7 @@ type MenuScene struct {
 
 func NewMenuScene(sceneManager *SceneManager) Scene {
 	ms := &MenuScene{sceneManager: sceneManager}
-	ms.menu = screens.NewMainMenu(ms.HandleManuAction)
+	ms.menu = screens.NewMainMenu(ms.HandleManuAction, core.DefaultTheme)
 	return ms
 }
 

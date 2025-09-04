@@ -61,3 +61,7 @@ func (is *InputSystem) GetMousePosition() math.Vector2 {
 func (is *InputSystem) IsUIActionJustReleased(action UIAction) bool {
 	return is.uiMapper.IsActionJustReleased(action)
 }
+
+func (is *InputSystem) GetInputChars() []rune {
+	return is.uiMapper.GetInputChars()
+}

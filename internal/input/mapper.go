@@ -80,6 +80,7 @@ type UIMapper struct {
 	mouseBindings    map[ebiten.MouseButton]UIAction
 	actionStates     map[UIAction]bool
 	prevActionStates map[UIAction]bool
+	inputBuffer      []rune
 }
 
 func NewUIMapper() *UIMapper {
@@ -90,17 +91,20 @@ func NewUIMapper() *UIMapper {
 		prevActionStates: make(map[UIAction]bool),
 	}
 
-	// Привязки для стрелок
-	m.bindings[ebiten.KeyArrowUp] = UIActionUp
-	m.bindings[ebiten.KeyArrowDown] = UIActionDown
-	m.bindings[ebiten.KeyEnter] = UIActionSelect
+	// Привязки для навигации и действий
+	m.bindings[ebiten.KeyArrowUp] = UIActionNavigateUp
+	m.bindings[ebiten.KeyArrowDown] = UIActionNavigateDown
+	m.bindings[ebiten.KeyTab] = UIActionNavigateDown
 	m.bindings[ebiten.KeyEscape] = UIActionBack
+	m.bindings[ebiten.KeyEnter] = UIActionConfirm
+	m.bindings[ebiten.KeyBackspace] = UIActionBackspace
 
 	// Мышь
 	m.mouseBindings[ebiten.MouseButtonLeft] = UIActionSelect
 
 	return m
 }
+
 
 func (m *UIMapper) Update() {
 	// Сохраняем предыдущее состояние
@@ -115,6 +119,7 @@ func (m *UIMapper) Update() {
 
 	// Проверка клавиш
 	for key, action := range m.bindings {
+		// Для Tab+Shift нужна будет отдельная логика
 		if ebiten.IsKeyPressed(key) {
 			m.actionStates[action] = true
 		}
@@ -126,6 +131,9 @@ func (m *UIMapper) Update() {
 			m.actionStates[action] = true
 		}
 	}
+
+	// Сбор символов
+	m.inputBuffer = ebiten.AppendInputChars(m.inputBuffer[:0])
 }
 
 func (m *UIMapper) IsActionPressed(action UIAction) bool {
@@ -138,4 +146,8 @@ func (m *UIMapper) IsActionJustPressed(action UIAction) bool {
 
 func (m *UIMapper) IsActionJustReleased(action UIAction) bool {
 	return !m.actionStates[action] && m.prevActionStates[action]
+}
+
+func (m *UIMapper) GetInputChars() []rune {
+	return m.inputBuffer
 }

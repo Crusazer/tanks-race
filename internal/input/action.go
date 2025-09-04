@@ -16,8 +16,15 @@ type UIAction int
 
 const (
 	UIActionNone UIAction = iota
-	UIActionUp
-	UIActionDown
-	UIActionSelect
-	UIActionBack
+
+	// Навигация
+	UIActionNavigateUp   // Стрелка вверх
+	UIActionNavigateDown // Стрелка вниз, Tab
+	UIActionNavigatePrev // Shift + Tab (пока не реализуем, но заложим)
+
+	// Действия
+	UIActionSelect    // Выбор (клик мыши)
+	UIActionConfirm   // Подтверждение (Enter)
+	UIActionBackspace // Удаление символа (Backspace)
+	UIActionBack      // Назад (Escape)
 )
