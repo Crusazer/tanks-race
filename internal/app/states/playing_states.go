@@ -8,6 +8,7 @@ import (
 
 	"github.com/Crusazer/tanks-race/internal/game/entity"
 	"github.com/Crusazer/tanks-race/internal/graphics/renderer"
+	"github.com/Crusazer/tanks-race/internal/input"
 	"github.com/Crusazer/tanks-race/internal/physics"
 	"github.com/Crusazer/tanks-race/internal/physics/shapes"
 	m "github.com/Crusazer/tanks-race/pkg/math"
@@ -17,18 +18,21 @@ import (
 )
 
 type PlayingRunningState struct {
-	world  *physics.World
-	em     *entity.Manager
-	camera *renderer.Camera
+	world       *physics.World
+	em          *entity.Manager
+	camera      *renderer.Camera
+	inputSystem *input.InputSystem
 }
 
 func NewPlayingRunningState(w *physics.World, em *entity.Manager, cam *renderer.Camera) *PlayingRunningState {
-	return &PlayingRunningState{world: w, em: em, camera: cam}
+	return &PlayingRunningState{world: w, em: em, camera: cam, inputSystem: input.NewInputSystem()}
 }
+
 func (s *PlayingRunningState) Enter() {}
 func (s *PlayingRunningState) Exit()  {}
 
 func (s *PlayingRunningState) Update(dt float64) error {
+	s.inputSystem.UpdateGame()
 	s.handleAllTanksInput()
 	s.world.Update(dt)
 	s.updateBounded()
@@ -91,18 +95,18 @@ func (s *PlayingRunningState) handleAllTanksInput() {
 		body := physic.Body
 		angle := body.Rotation
 
-		if ebiten.IsKeyPressed(ebiten.KeyW) {
+		if s.inputSystem.IsGameActionPressed(input.ActionMoveUp) {
 			forward := m.Vector2{X: 0, Y: -1}.Rotate(angle)
 			body.Force = body.Force.Add(forward.Scale(force))
 		}
-		if ebiten.IsKeyPressed(ebiten.KeyS) {
+		if s.inputSystem.IsGameActionPressed(input.ActionMoveDown) {
 			backward := m.Vector2{X: 0, Y: -1}.Rotate(angle).Scale(-1)
 			body.Force = body.Force.Add(backward.Scale(force))
 		}
-		if ebiten.IsKeyPressed(ebiten.KeyA) {
+		if s.inputSystem.IsGameActionPressed(input.ActionMoveLeft) {
 			body.Torque -= torque
 		}
-		if ebiten.IsKeyPressed(ebiten.KeyD) {
+		if s.inputSystem.IsGameActionPressed(input.ActionMoveRight) {
 			body.Torque += torque
 		}
 	}
@@ -113,9 +117,9 @@ func (s *PlayingRunningState) handleAllTanksInput() {
 	turretSprite := turret_entity.Components[entity.SpriteComponent].(*entity.Sprite)
 	turretPos := turret_entity.Components[entity.PositionComponent].(*entity.Position)
 
-	mouseX, mouseY := ebiten.CursorPosition()
-	mouseWorldX := (float64(mouseX)-s.camera.ViewportWidth/2)/s.camera.Zoom + s.camera.Position.X
-	mouseWorldY := (float64(mouseY)-s.camera.ViewportHeight/2)/s.camera.Zoom + s.camera.Position.Y
+	mousePosition := s.inputSystem.GetMousePosition()
+	mouseWorldX := (mousePosition.X-s.camera.ViewportWidth/2)/s.camera.Zoom + s.camera.Position.X
+	mouseWorldY := (mousePosition.Y-s.camera.ViewportHeight/2)/s.camera.Zoom + s.camera.Position.Y
 
 	dx := mouseWorldX - turretPos.Position.X
 	dy := mouseWorldY - turretPos.Position.Y

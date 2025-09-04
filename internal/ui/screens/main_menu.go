@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"image/color"
 
+	"github.com/Crusazer/tanks-race/internal/input"
 	"github.com/Crusazer/tanks-race/internal/ui/core"
-	"github.com/Crusazer/tanks-race/pkg/math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -22,8 +22,9 @@ const (
 )
 
 type MainMenu struct {
-	layout   *core.VerticalFlowLayout
-	onAction func(MenuAction)
+	layout      *core.VerticalFlowLayout
+	onAction    func(MenuAction)
+	inputSystem *input.InputSystem
 }
 
 func NewMainMenu(onAction func(MenuAction)) *MainMenu {
@@ -57,13 +58,13 @@ func NewMainMenu(onAction func(MenuAction)) *MainMenu {
 
 	exitButton := createButton("Выход", func() { onAction(ActionExit) })
 	layout.Add(exitButton)
-	return &MainMenu{layout: layout, onAction: onAction}
+	return &MainMenu{layout: layout, onAction: onAction, inputSystem: input.NewInputSystem()}
 }
 
 func (m *MainMenu) Update() error {
-	mx, my := ebiten.CursorPosition()
-	pressed := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
-	mp := math.Vector2{X: float64(mx), Y: float64(my)}
+	m.inputSystem.UpdateUI()
+	pressed := m.inputSystem.IsUIActionJustPressed(input.UIActionSelect)
+	mp := m.inputSystem.GetMousePosition()
 
 	for _, w := range m.layout.Widgets() {
 		w.Update(mp, pressed)
