@@ -52,3 +52,4 @@ func (ps *PlayingScene) Draw(screen *ebiten.Image) {
 	ps.sm.Draw(screen)
 }
 func (ps *PlayingScene) Layout(w, h int) (int, int) { return w, h }
+

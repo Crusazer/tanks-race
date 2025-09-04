@@ -6,23 +6,24 @@ import (
 )
 
 type Game struct {
-	sceneMgr *scenes.SceneManager
+	sceneManager *scenes.SceneManager
 }
 
 func New() *Game {
 	g := &Game{}
-	g.sceneMgr = scenes.NewSceneManager(scenes.NewPlayingScene()) // Старт с игры
+	g.sceneManager = &scenes.SceneManager{}
+	g.sceneManager.ChangeScene(scenes.NewMenuScene(g.sceneManager))
 	return g
 }
 
 func (g *Game) Update() error {
-	return g.sceneMgr.Update(1.0 / 60)
+	return g.sceneManager.Update(1.0 / 60)
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.sceneMgr.Draw(screen)
+	g.sceneManager.Draw(screen)
 }
 
 func (g *Game) Layout(w, h int) (int, int) {
-	return g.sceneMgr.Layout(w, h)
+	return g.sceneManager.Layout(w, h)
 }
