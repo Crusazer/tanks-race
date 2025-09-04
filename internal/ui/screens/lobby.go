@@ -46,7 +46,7 @@ func NewLobby(theme *core.Theme) *Lobby {
 	statusLabel := core.NewLabel("Статус: Ожидание ввода", theme)
 	layout.Add(statusLabel)
 
-	return &Lobby{
+	lobby := &Lobby{
 		layout:        layout,
 		inputSystem:   input.NewInputSystem(),
 		ipInput:       ipInput,
@@ -55,9 +55,14 @@ func NewLobby(theme *core.Theme) *Lobby {
 		statusLabel:   statusLabel,
 		theme:         theme,
 	}
+
+	lobby.focusFirstWidget()
+	return lobby
 }
 
 func (l *Lobby) Update() error {
+	screenWidth, screenHeight := ebiten.WindowSize()
+	l.layout.ComputeBounds(screenWidth, screenHeight)
 	l.inputSystem.UpdateUI()
 
 	mousePos := l.inputSystem.GetMousePosition()

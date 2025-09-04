@@ -17,7 +17,6 @@ type TextInput struct {
 	BaseWidget
 	Text             string
 	Placeholder      string
-	IsFocused        bool
 	BorderColor      color.Color
 	BgColor          color.Color
 	TextColor        color.Color
@@ -107,7 +106,7 @@ func (t *TextInput) Draw(dst *ebiten.Image) {
 	if !t.Visible {
 		return
 	}
-
+	
 	// Фон
 	drawRect(dst, t.Pos, float64(t.Width), float64(t.Height), t.BgColor)
 
@@ -120,7 +119,7 @@ func (t *TextInput) Draw(dst *ebiten.Image) {
 
 	// Текст
 	drawOptions := &text.DrawOptions{}
-	drawOptions.LineSpacing = t.Font.Metrics().HLineGap
+	drawOptions.LineSpacing = float64(t.theme.FontSize)
 
 	displayTxt := t.Text
 	txtColor := t.TextColor
@@ -135,7 +134,7 @@ func (t *TextInput) Draw(dst *ebiten.Image) {
 
 	// Центрирование по вертикали
 	metrics := t.Font.Metrics()
-	textY := t.Pos.Y + float64(t.Height)/2 - float64(int(metrics.HLineGap)>>6)/2
+	textY := t.Pos.Y + float64(t.Height)/2 - metrics.CapHeight/2
 
 	drawOptions.GeoM.Translate(textX, textY)
 	drawOptions.ColorScale.ScaleWithColor(txtColor)

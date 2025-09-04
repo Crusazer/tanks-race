@@ -84,9 +84,9 @@ func (l *Label) Draw(dst *ebiten.Image) {
 	op.LineSpacing = l.Font.Metrics().HLineGap // используем высоту строки шрифта
 
 	// Центрируем текст внутри текущих границ виджета
-	w, h := text.Measure(l.Text, l.Font, op.LineSpacing)
+	w, _ := text.Measure(l.Text, l.Font, op.LineSpacing)
 	x := l.Pos.X + float64(l.Width)/2 - w/2
-	y := l.Pos.Y + float64(l.Height)/2 - h/2
+	y := l.Pos.Y + float64(l.Height)/2
 	op.GeoM.Translate(x, y)
 
 	// Применяем цвет (ColorScale – умножаем на нужный цвет)
